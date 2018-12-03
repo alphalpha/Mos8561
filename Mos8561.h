@@ -4,25 +4,18 @@
   Released into the public domain
 */
 
-#ifndef Morse_h
-#define Morse_h
+#ifndef Mos8561_h
+#define Mos8561_h
 
-#include "Arduino.h"
 #include <assert.h>
+#include <math.h>
+
 
 namespace sid {
 
-const byte LATCH_PIN = 3;
-const byte CLOCK_PIN = 4;
-const byte DATA_PIN = 2;
-
-const byte SID_RESET_PIN = 8;
-const byte SID_CLOCK_PIN = 9;
-const byte SID_SELECT_PIN = 13;
-
 const int REF_A = 440;
 
-enum class Waveform : byte {
+enum class Waveform : uint8_t {
   Noise = 0x80,
   Square = 0x40,
   Saw = 0x20,
@@ -30,81 +23,73 @@ enum class Waveform : byte {
 };
 
 struct Adsr {
-  byte att;
-  byte dec;
-  byte sus;
-  byte rel;
+  uint8_t att;
+  uint8_t dec;
+  uint8_t sus;
+  uint8_t rel;
+};
+
+// This type must be implemented and injected into Mos8561
+// It defines how the Mos8561 chip is connected to the Arduino
+struct Controller {
+  Controller();
+  void startClock(); 
+  void reset();
+  void writeRegister(const uint8_t address, const uint8_t data);
 };
 
 namespace {
-  int noteToFreq(byte note) {
+  int noteToFreq(const uint8_t note) {
     return REF_A * pow(2, (note - 69) / 12.f);
   }
 
-  word freqAsWord(int freq) {
+  uint16_t freqAsWord(const int freq) {
     return freq / 0.0596;
   }
 
-  byte byteTo4Bits(int val) {
-    byte rtv = map(val, 1, 127, 0, 15);
-    return rtv;
-  }
-
-  void printBinary(int inByte) {
-    for (int b = 7; b >= 0; b--)
-    {
-      Serial.print(bitRead(inByte, b));
-    }
-  }
-
-  void printAddressData(byte address, byte data) {
-    printBinary(address);
-    Serial.print(F(" "));
-    printBinary(data);
-    Serial.println();
+  uint8_t byteTo4Bits(const int val) {
+    return (uint8_t)(val * 15 / 127.f);
   }
 }; // unnamed namespace
 
+template<typename Controller>
 class Mos8561
 {
 public:
-  Mos8561() {
-    pinMode(LATCH_PIN, OUTPUT);
-    pinMode(DATA_PIN, OUTPUT);
-    pinMode(CLOCK_PIN, OUTPUT);
-    pinMode(SID_RESET_PIN, OUTPUT);
-    pinMode(SID_SELECT_PIN, OUTPUT);
-    pinMode(SID_CLOCK_PIN, OUTPUT );
-
-    startClock();
-    reset();
+  Mos8561(Controller ctr):
+    controller(ctr) {
   }
 
-  void setVolume(byte vol) {
+  void start() {
+    controller.startClock();
+    controller.reset();
+  }
+
+  void setVolume(const uint8_t vol) {
     volume = vol;
-    byte data = byteTo4Bits(volume);
-    byte address = 0x18;
-    writeRegister(address, data);
+    uint8_t data = byteTo4Bits(volume);
+    uint8_t address = 0x18;
+    controller.writeRegister(address, data);
   }
 
-  void setAdsr(byte voiceNum, Adsr adsr) {
+  void setAdsr(const uint8_t voiceNum, const Adsr adsr) {
     voices[voiceNum].adsr = adsr;
     // 1. Attack/Release
-    byte address = 5 + (voiceNum * 7);
-    byte data = voices[voiceNum].adsr.dec + (voices[voiceNum].adsr.att << 4);
-    writeRegister(address, data);
+    uint8_t address = 5 + (voiceNum * 7);
+    uint8_t data = voices[voiceNum].adsr.dec + (voices[voiceNum].adsr.att << 4);
+    controller.writeRegister(address, data);
     // 2. Release/Sustain
     ++address;
     data = voices[voiceNum].adsr.rel + (voices[voiceNum].adsr.sus << 4);
-    writeRegister(address, data);
+    controller.writeRegister(address, data);
   }
 
-  void setWaveform(byte voiceNum, Waveform waveform) {
+  void setWaveform(const uint8_t voiceNum, const Waveform waveform) {
     voices[voiceNum].waveform = waveform;
     writeControlByte(voiceNum);
   }
 
-  void playNote(byte voiceNum, byte note, byte velocity) {
+  void playNote(const uint8_t voiceNum, const uint8_t note, const uint8_t velocity) {
     assert(voiceNum < 3);
     voices[voiceNum].isPlaying = velocity > 0;
     writeNote(voiceNum, note);
@@ -112,70 +97,39 @@ public:
   }
 
 private:
-  void startClock() {
-    TCCR1A = 0;
-    TCCR1B = 0;
-    TCNT1 = 0;
-    OCR1A = 7;
-    TCCR1A |= (1 << COM1A0);
-    TCCR1B |= (1 << WGM12);
-    TCCR1B |= (1 << CS10);
-    waitCycles(1);
-  }
-
-  void reset() {
-    digitalWrite(SID_RESET_PIN, HIGH);
-    waitCycles(2);
-    digitalWrite(SID_RESET_PIN, LOW);
-    waitCycles(10);
-    digitalWrite(SID_RESET_PIN, HIGH);
-  }
-
-  void waitCycles(byte numCycles) {
-    delayMicroseconds(numCycles);
-  }
-
-  void writeNote(byte voiceNum, byte note) {
+  void writeNote(const uint8_t voiceNum, const uint8_t note) {
     int hz = noteToFreq(note);
-    word freq = freqAsWord(hz);
+    uint16_t freq = freqAsWord(hz);
     // 1. Freq Lo
-    byte address = voiceNum * 7;
-    byte data = lowByte(freq);
-    writeRegister(address, data);
+    uint8_t address = voiceNum * 7;
+    uint8_t data = (uint8_t)(freq & 0xff);
+    controller.writeRegister(address, data);
     // 1. Freq Lo
     address += 1;
-    data = highByte(freq);
-    writeRegister(address, data);
+    data = (uint8_t)(freq >> 8);
+    controller.writeRegister(address, data);
   }
 
-  void writeControlByte(byte voiceNum) {
-    byte data = byte(voices[voiceNum].waveform) + voices[voiceNum].isPlaying;
-    byte address = 4 + (voiceNum * 7);
-    writeRegister(address, data);
+  void writeControlByte(const uint8_t voiceNum) {
+    uint8_t data = uint8_t(voices[voiceNum].waveform) + voices[voiceNum].isPlaying;
+    uint8_t address = 4 + (voiceNum * 7);
+    controller.writeRegister(address, data);
   }
 
-  void writeRegister(byte address, byte data) {
-    digitalWrite(LATCH_PIN, LOW);
-    shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, data);
-    shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, address);
-    digitalWrite(LATCH_PIN, HIGH);
-
-    // What is the deal with the SELECT PIN?
-    // Also works without toggling it
-    digitalWrite(SID_SELECT_PIN, HIGH);
-    waitCycles(2);
-    digitalWrite(SID_SELECT_PIN, LOW);
+  void writeRegister(const uint8_t address, const uint8_t data) {
+    controller.writeRegister(address, data);
   }
 
   struct Voice {
-    byte num;
+    uint8_t num;
     Waveform waveform;
     Adsr adsr;
     bool isPlaying;
   };
   
+  Controller controller;
   Voice voices[3];
-  byte volume;
+  uint8_t volume;
 };
 
 } // namespace sid
