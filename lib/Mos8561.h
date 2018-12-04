@@ -124,7 +124,7 @@ private:
     uint8_t num;
     Waveform waveform;
     Adsr adsr;
-    bool isPlaying;
+    bool isPlaying = 0;
   };
   
   Controller controller;

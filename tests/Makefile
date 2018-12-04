@@ -1,7 +1,7 @@
 LIB_DIR =../lib
 CATCH_DIR =../third_party
 CC=g++
-CPPFLAGS=-I$(CATCH_DIR) -I$(LIB_DIR) -std=c++11 -Wall
+CPPFLAGS=-I$(CATCH_DIR) -I$(LIB_DIR) -std=c++14 -Wall
 TESTBIN=tst_mos8561
 
 
