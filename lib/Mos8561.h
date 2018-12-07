@@ -89,6 +89,19 @@ public:
     writeControlByte(voiceNum);
   }
 
+  void setPulseWidth(const uint8_t voiceNum, const uint16_t width) {
+    assert(width < 4096);
+    voices[voiceNum].pulseWidth = width;
+    // Lower byte of 12-bit value
+    uint8_t data = (uint8_t)(voices[voiceNum].pulseWidth & 0xff);
+    uint8_t address = 2 + (voiceNum * 7);
+    controller.writeRegister(address, data);
+    // Upper four bits of 12-bit value
+    data = (uint8_t)(voices[voiceNum].pulseWidth >> 8);
+    ++address;
+    controller.writeRegister(address, data);
+  }
+
   void playNote(const uint8_t voiceNum, const uint8_t note, const uint8_t velocity) {
     assert(voiceNum < 3);
     voices[voiceNum].isPlaying = velocity > 0;
@@ -123,6 +136,7 @@ private:
   struct Voice {
     uint8_t num;
     Waveform waveform;
+    uint16_t pulseWidth;
     Adsr adsr;
     bool isPlaying = 0;
   };

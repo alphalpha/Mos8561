@@ -135,4 +135,52 @@ TEST_CASE("Mos8561") {
     REQUIRE(writeRegisterCallback.vec.back().first == 20);
     REQUIRE(writeRegisterCallback.vec.back().second == 0b00011011);
   }
+
+  SECTION("Set Pulse Width for first Voice (lower byte only)") {
+    const auto width = 42;
+    mos.setPulseWidth(0, width);
+    CHECK(startClockCallback.numCalls == 0);
+    CHECK(resetCallback.numCalls == 0);
+    CHECK(writeRegisterCallback.vec.size() == 2);
+    REQUIRE(writeRegisterCallback.vec.front().first == 2);
+    REQUIRE(writeRegisterCallback.vec.front().second == 42);
+    REQUIRE(writeRegisterCallback.vec.back().first == 3);
+    REQUIRE(writeRegisterCallback.vec.back().second == 0);
+  }
+
+  SECTION("Set Pulse Width for first Voice (upper four bits only)") {
+    const auto width = 256;
+    mos.setPulseWidth(0, width);
+    CHECK(startClockCallback.numCalls == 0);
+    CHECK(resetCallback.numCalls == 0);
+    CHECK(writeRegisterCallback.vec.size() == 2);
+    REQUIRE(writeRegisterCallback.vec.front().first == 2);
+    REQUIRE(writeRegisterCallback.vec.front().second == 0);
+    REQUIRE(writeRegisterCallback.vec.back().first == 3);
+    REQUIRE(writeRegisterCallback.vec.back().second == 1);
+  }
+
+  SECTION("Set Pulse Width for second Voice") {
+    const auto width = 1234;
+    mos.setPulseWidth(1, width);
+    CHECK(startClockCallback.numCalls == 0);
+    CHECK(resetCallback.numCalls == 0);
+    CHECK(writeRegisterCallback.vec.size() == 2);
+    REQUIRE(writeRegisterCallback.vec.front().first == 9);
+    REQUIRE(writeRegisterCallback.vec.front().second == 0b11010010);
+    REQUIRE(writeRegisterCallback.vec.back().first == 10);
+    REQUIRE(writeRegisterCallback.vec.back().second == 0b100);
+  }
+
+  SECTION("Set Pulse Width for third Voice") {
+    const auto width = 3456;
+    mos.setPulseWidth(2, width);
+    CHECK(startClockCallback.numCalls == 0);
+    CHECK(resetCallback.numCalls == 0);
+    CHECK(writeRegisterCallback.vec.size() == 2);
+    REQUIRE(writeRegisterCallback.vec.front().first == 16);
+    REQUIRE(writeRegisterCallback.vec.front().second == 0b10000000);
+    REQUIRE(writeRegisterCallback.vec.back().first == 17);
+    REQUIRE(writeRegisterCallback.vec.back().second == 0b1101);
+  }
 }
