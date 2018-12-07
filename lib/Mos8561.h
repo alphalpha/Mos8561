@@ -39,12 +39,12 @@ struct Controller {
 };
 
 namespace {
-  int noteToFreq(const uint8_t note) {
+  double noteToFreq(const uint8_t note) {
     return REF_A * pow(2, (note - 69) / 12.f);
   }
 
-  uint16_t freqAsWord(const int freq) {
-    return freq / 0.0596;
+  uint16_t freqAsWord(const double freq) {
+    return (uint16_t)round(freq / 0.0596);
   }
 
   uint8_t byteTo4Bits(const int val) {
@@ -111,7 +111,7 @@ public:
 
 private:
   void writeNote(const uint8_t voiceNum, const uint8_t note) {
-    int hz = noteToFreq(note);
+    const auto hz = noteToFreq(note);
     uint16_t freq = freqAsWord(hz);
     // 1. Freq Lo
     uint8_t address = voiceNum * 7;

@@ -183,4 +183,76 @@ TEST_CASE("Mos8561") {
     REQUIRE(writeRegisterCallback.vec.back().first == 17);
     REQUIRE(writeRegisterCallback.vec.back().second == 0b1101);
   }
+
+  SECTION("Play Note On and Off with first Voice") {
+    const auto voiceNum = 0;
+    const auto note = 57;
+    mos.setWaveform(voiceNum, sid::Waveform::Square);
+    mos.playNote(voiceNum, note, 127);
+    CHECK(writeRegisterCallback.vec.size() == 4);
+    REQUIRE(writeRegisterCallback.vec.at(0).first == 4);
+    REQUIRE(writeRegisterCallback.vec.at(0).second == 0b01000000);
+    REQUIRE(writeRegisterCallback.vec.at(1).first == 0);
+    REQUIRE(writeRegisterCallback.vec.at(1).second == 0x6B);
+    REQUIRE(writeRegisterCallback.vec.at(2).first == 1);
+    REQUIRE(writeRegisterCallback.vec.at(2).second == 0x0E);
+    REQUIRE(writeRegisterCallback.vec.at(3).first == 4);
+    REQUIRE(writeRegisterCallback.vec.at(3).second == 0b01000001);
+
+    mos.playNote(voiceNum, note, 0);
+    REQUIRE(writeRegisterCallback.vec.at(4).first == 0);
+    REQUIRE(writeRegisterCallback.vec.at(4).second == 0x6B);
+    REQUIRE(writeRegisterCallback.vec.at(5).first == 1);
+    REQUIRE(writeRegisterCallback.vec.at(5).second == 0x0E);
+    REQUIRE(writeRegisterCallback.vec.at(6).first == 4);
+    REQUIRE(writeRegisterCallback.vec.at(6).second == 0b01000000);
+  }
+
+  SECTION("Play Note On and Off with second Voice") {
+    const auto voiceNum = 1;
+    const auto note = 48;
+    mos.setWaveform(voiceNum, sid::Waveform::Triangle);
+    mos.playNote(voiceNum, note, 127);
+    CHECK(writeRegisterCallback.vec.size() == 4);
+    REQUIRE(writeRegisterCallback.vec.at(0).first == 11);
+    REQUIRE(writeRegisterCallback.vec.at(0).second == 0b00010000);
+    REQUIRE(writeRegisterCallback.vec.at(1).first == 7);
+    REQUIRE(writeRegisterCallback.vec.at(1).second == 0x93);
+    REQUIRE(writeRegisterCallback.vec.at(2).first == 8);
+    REQUIRE(writeRegisterCallback.vec.at(2).second == 0x08);
+    REQUIRE(writeRegisterCallback.vec.at(3).first == 11);
+    REQUIRE(writeRegisterCallback.vec.at(3).second == 0b00010001);
+
+    mos.playNote(voiceNum, note, 0);
+    REQUIRE(writeRegisterCallback.vec.at(4).first == 7);
+    REQUIRE(writeRegisterCallback.vec.at(4).second == 0x93);
+    REQUIRE(writeRegisterCallback.vec.at(5).first == 8);
+    REQUIRE(writeRegisterCallback.vec.at(5).second == 0x08);
+    REQUIRE(writeRegisterCallback.vec.at(6).first == 11);
+    REQUIRE(writeRegisterCallback.vec.at(6).second == 0b00010000);
+  }
+
+  SECTION("Play Note On and Off with third Voice") {
+    const auto voiceNum = 2;
+    const auto note = 14;
+    mos.setWaveform(voiceNum, sid::Waveform::Saw);
+    mos.playNote(voiceNum, note, 127);
+    CHECK(writeRegisterCallback.vec.size() == 4);
+    REQUIRE(writeRegisterCallback.vec.at(0).first == 18);
+    REQUIRE(writeRegisterCallback.vec.at(0).second == 0b00100000);
+    REQUIRE(writeRegisterCallback.vec.at(1).first == 14);
+    REQUIRE(writeRegisterCallback.vec.at(1).second == 0x34);
+    REQUIRE(writeRegisterCallback.vec.at(2).first == 15);
+    REQUIRE(writeRegisterCallback.vec.at(2).second == 0x01);
+    REQUIRE(writeRegisterCallback.vec.at(3).first == 18);
+    REQUIRE(writeRegisterCallback.vec.at(3).second == 0b00100001);
+
+    mos.playNote(voiceNum, note, 0);
+    REQUIRE(writeRegisterCallback.vec.at(4).first == 14);
+    REQUIRE(writeRegisterCallback.vec.at(4).second == 0x34);
+    REQUIRE(writeRegisterCallback.vec.at(5).first == 15);
+    REQUIRE(writeRegisterCallback.vec.at(5).second == 0x01);
+    REQUIRE(writeRegisterCallback.vec.at(6).first == 18);
+    REQUIRE(writeRegisterCallback.vec.at(6).second == 0b00100000);
+  }
 }
