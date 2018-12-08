@@ -255,4 +255,26 @@ TEST_CASE("Mos8561") {
     REQUIRE(writeRegisterCallback.vec.at(6).first == 18);
     REQUIRE(writeRegisterCallback.vec.at(6).second == 0b00100000);
   }
+
+  SECTION("Enable/Disable Filter") {
+    mos.setFilterIsEnabled(0, true);
+    CHECK(writeRegisterCallback.vec.size() == 1);
+    REQUIRE(writeRegisterCallback.vec.at(0).first == 23);
+    REQUIRE(writeRegisterCallback.vec.at(0).second == 0b00000001);
+
+    mos.setFilterIsEnabled(0, false);
+    CHECK(writeRegisterCallback.vec.size() == 2);
+    REQUIRE(writeRegisterCallback.vec.at(1).first == 23);
+    REQUIRE(writeRegisterCallback.vec.at(1).second == 0b00000000);
+
+    mos.setFilterIsEnabled(1, true);
+    CHECK(writeRegisterCallback.vec.size() == 3);
+    REQUIRE(writeRegisterCallback.vec.at(2).first == 23);
+    REQUIRE(writeRegisterCallback.vec.at(2).second == 0b00000010);
+
+    mos.setFilterIsEnabled(2, true);
+    CHECK(writeRegisterCallback.vec.size() == 4);
+    REQUIRE(writeRegisterCallback.vec.at(3).first == 23);
+    REQUIRE(writeRegisterCallback.vec.at(3).second == 0b00000110);
+  }
 }

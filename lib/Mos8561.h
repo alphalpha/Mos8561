@@ -102,6 +102,14 @@ public:
     controller.writeRegister(address, data);
   }
 
+  void setFilterIsEnabled(const uint8_t voiceNum, const bool isEnabled) {
+    voices[voiceNum].filterIsEnabled = isEnabled;
+    const uint8_t address = 23;
+    const uint8_t data = voices[0].filterIsEnabled + (voices[1].filterIsEnabled << 1)
+      + (voices[2].filterIsEnabled << 2);
+    controller.writeRegister(address, data);
+  }
+
   void playNote(const uint8_t voiceNum, const uint8_t note, const uint8_t velocity) {
     assert(voiceNum < 3);
     voices[voiceNum].isPlaying = velocity > 0;
@@ -138,7 +146,8 @@ private:
     Waveform waveform;
     uint16_t pulseWidth;
     Adsr adsr;
-    bool isPlaying = 0;
+    bool filterIsEnabled = false;
+    bool isPlaying = false;
   };
   
   Controller controller;
