@@ -39,11 +39,11 @@ struct Controller {
 };
 
 namespace {
-  double noteToFreq(const uint8_t note) {
+  float noteToFreq(const float note) {
     return REF_A * pow(2, (note - 69) / 12.f);
   }
 
-  uint16_t freqAsWord(const double freq) {
+  uint16_t freqAsWord(const float freq) {
     return (uint16_t)round(freq / 0.0596);
   }
 
@@ -110,16 +110,16 @@ public:
     controller.writeRegister(address, data);
   }
 
-  void playNote(const uint8_t voiceNum, const uint8_t note, const uint8_t velocity) {
+  void playNote(const uint8_t voiceNum, const double note, const uint8_t velocity) {
     assert(voiceNum < 3);
     voices[voiceNum].isPlaying = velocity > 0;
-    writeNote(voiceNum, note);
+    const auto hz = noteToFreq(note);
+    writeFrequency(voiceNum, hz);
     writeControlByte(voiceNum);
   }
 
 private:
-  void writeNote(const uint8_t voiceNum, const uint8_t note) {
-    const auto hz = noteToFreq(note);
+  void writeFrequency(const uint8_t voiceNum, const float hz) {
     uint16_t freq = freqAsWord(hz);
     // 1. Freq Lo
     uint8_t address = voiceNum * 7;
